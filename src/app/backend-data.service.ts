@@ -11,6 +11,7 @@ const CORS_PROXY = url => `https://cors-anywhere.herokuapp.com/${ encodeURI(url)
 })
 export class BackendDataService {
   departmentsUrl = 'https://www.deanza.edu/schedule/';
+  // https://www.deanza.edu/_resources/php/catalog/dept-course-list.php?dept=182
   classesUrl = 'https://us-central1-professcore.cloudfunctions.net/get_classes';
   ratingsUrl = 'https://us-central1-professcore.cloudfunctions.net/get_ratings';
 
@@ -19,8 +20,8 @@ export class BackendDataService {
   getDepartments() {
     return this.http.get(CORS_PROXY(this.departmentsUrl), {responseType: 'text'}).pipe(
       map(
-        data => {
-          return cheerio('select#dept-select option', data)
+        data =>
+          cheerio('select#dept-select option', data)
             .get()
             .reduce((elements, el) =>
               elements.concat(el.attribs.value
@@ -29,12 +30,23 @@ export class BackendDataService {
                     value: el.attribs.value
                   }
                 : []),
-              []
-            )
-        }, error => console.error(error)))
+              []),
+        error => console.error(error)))
   }
   getClasses(dept) {
-    return this.http.get(this.classesUrl + '?dept=' + dept);
+    // return
+    this.http.get(CORS_PROXY('https://www.deanza.edu/_resources/php/catalog/dept-course-list.php?dept=' + dept), {responseType: 'text'}).pipe(
+      map(
+        data =>
+          cheerio('tbody tr td:first-child', data)
+            .get()
+            .map(el => el.children[0].data),
+        error => console.error(error))
+      )
+      .subscribe((data: object[]) => {
+        console.log(data)
+      })
+      return this.http.get(this.classesUrl + '?dept=' + dept);
   }
   getRatings(dept, class_) {
     return this.http.get(this.ratingsUrl + '?dept=' + dept + '&class=' + encodeURIComponent(class_));
